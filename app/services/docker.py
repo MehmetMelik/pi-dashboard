@@ -81,19 +81,19 @@ def get_containers() -> list[dict]:
         if ":" in image:
             image = image.split(":")[0]
         ports = c.get("Ports", [])
-        port_strs = []
+        port_set = set()
         for p in ports:
             pub = p.get("PublicPort")
             priv = p.get("PrivatePort")
             if pub:
-                port_strs.append(f"{pub}:{priv}")
+                port_set.add(f"{pub}:{priv}")
             elif priv:
-                port_strs.append(str(priv))
+                port_set.add(str(priv))
         containers.append({
             "name": name,
             "image": image,
             "state": state,
             "status": status,
-            "ports": ", ".join(port_strs) if port_strs else "—",
+            "ports": ", ".join(sorted(port_set)) if port_set else "—",
         })
     return containers
