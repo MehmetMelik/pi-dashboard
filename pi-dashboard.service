@@ -1,0 +1,16 @@
+[Unit]
+Description=Pi Dashboard
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=melik
+WorkingDirectory=/home/melik/dev/pi-dashboard
+ExecStart=/usr/bin/python3 /home/melik/dev/pi-dashboard/run.py
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/home/melik/dev/pi-dashboard/.env
+
+[Install]
+WantedBy=multi-user.target

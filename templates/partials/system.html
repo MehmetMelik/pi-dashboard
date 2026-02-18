@@ -1,0 +1,61 @@
+<div class="card-title"><span class="title-icon">&#9881;</span> System Monitor</div>
+
+<div class="sys-grid">
+    <div class="sys-block">
+        <div class="sys-block-header">CPU</div>
+        <div class="cpu-cores">
+            {% for pct in stats.cpu_cores %}
+            <div class="cpu-core">
+                <div class="core-label">C{{ loop.index0 }}</div>
+                <div class="bar-container">
+                    <div class="bar-fill {% if pct < 60 %}bar-green{% elif pct < 85 %}bar-amber{% else %}bar-red{% endif %}"
+                         style="width: {{ pct }}%"></div>
+                </div>
+                <div class="core-pct">{{ "%.0f"|format(pct) }}%</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if stats.cpu_temp is not none %}
+    <div class="sys-block sys-block-sm">
+        <div class="sys-block-header">Temp</div>
+        <div class="big-value {% if stats.cpu_temp < 60 %}text-green{% elif stats.cpu_temp < 75 %}text-amber{% else %}text-red{% endif %}">
+            {{ "%.1f"|format(stats.cpu_temp) }}<span class="big-unit">°C</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="sys-block sys-block-sm">
+        <div class="sys-block-header">RAM</div>
+        <div class="ring-stat">
+            <div class="big-value {% if stats.memory.percent < 60 %}text-green{% elif stats.memory.percent < 85 %}text-amber{% else %}text-red{% endif %}">
+                {{ "%.0f"|format(stats.memory.percent) }}<span class="big-unit">%</span>
+            </div>
+            <div class="ring-detail">{{ stats.memory.used_gb }} / {{ stats.memory.total_gb }} GB</div>
+        </div>
+    </div>
+
+    <div class="sys-block sys-block-sm">
+        <div class="sys-block-header">Disk</div>
+        <div class="ring-stat">
+            <div class="big-value {% if stats.disk.percent < 60 %}text-green{% elif stats.disk.percent < 85 %}text-amber{% else %}text-red{% endif %}">
+                {{ "%.0f"|format(stats.disk.percent) }}<span class="big-unit">%</span>
+            </div>
+            <div class="ring-detail">{{ stats.disk.free_gb }} GB free</div>
+        </div>
+    </div>
+
+    <div class="sys-block sys-block-sm">
+        <div class="sys-block-header">Network</div>
+        <div class="net-stats">
+            <div class="net-row"><span class="net-arrow up">&#9650;</span> {{ stats.network.bytes_sent_mb }} MB</div>
+            <div class="net-row"><span class="net-arrow down">&#9660;</span> {{ stats.network.bytes_recv_mb }} MB</div>
+        </div>
+    </div>
+
+    <div class="sys-block sys-block-sm">
+        <div class="sys-block-header">Uptime</div>
+        <div class="big-value text-accent">{{ stats.uptime }}</div>
+    </div>
+</div>

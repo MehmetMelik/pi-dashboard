@@ -1,0 +1,18 @@
+<div class="card-title"><span class="title-icon">&#9638;</span> Docker Containers</div>
+
+{% if containers %}
+<div class="docker-list">
+    {% for c in containers %}
+    <div class="docker-row">
+        <span class="state-dot state-{{ c.state }}"></span>
+        <div class="docker-info">
+            <div class="docker-name">{{ c.name }}</div>
+            <div class="docker-detail">{{ c.image }} &middot; {{ c.status }}</div>
+        </div>
+        <div class="docker-ports">{{ c.ports }}</div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="no-data">No containers running</div>
+{% endif %}

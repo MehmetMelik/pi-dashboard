@@ -1,0 +1,34 @@
+<div class="card-title"><span class="title-icon">&#9635;</span> Calendar</div>
+
+{% if events %}
+<div class="cal-list">
+    {% for e in events %}
+    <div class="cal-event {% if e.is_today %}cal-today{% elif e.is_tomorrow %}cal-tomorrow{% endif %}">
+        <div class="cal-date-badge">
+            <div class="cal-badge-day">{{ e.day }}</div>
+            <div class="cal-badge-month">{{ e.month }}</div>
+            <div class="cal-badge-weekday">{{ e.weekday }}</div>
+        </div>
+        <div class="cal-details">
+            <div class="cal-summary">{{ e.summary }}</div>
+            <div class="cal-time">
+                {% if e.all_day %}
+                    All day
+                {% elif e.end_time %}
+                    {{ e.start_time }} &ndash; {{ e.end_time }}
+                {% else %}
+                    {{ e.start_time }}
+                {% endif %}
+                {% if e.is_today %}<span class="cal-tag cal-tag-today">Today</span>{% endif %}
+                {% if e.is_tomorrow %}<span class="cal-tag cal-tag-tomorrow">Tomorrow</span>{% endif %}
+            </div>
+            {% if e.location %}
+            <div class="cal-location">{{ e.location }}</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="no-data">No upcoming events</div>
+{% endif %}

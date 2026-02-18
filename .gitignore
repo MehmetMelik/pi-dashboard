@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pyo
+dashboard.db
+dashboard.db-wal
+dashboard.db-shm
+.env

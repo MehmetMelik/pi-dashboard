@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="dashboard">
+    <section class="card card-weather"
+             hx-get="/partials/weather" hx-trigger="load, every 1800s" hx-swap="innerHTML">
+        <div class="card-title">Weather — London</div>
+        <div class="no-data">Loading...</div>
+    </section>
+
+    <section class="card card-market"
+             hx-get="/partials/market" hx-trigger="load, every 300s" hx-swap="innerHTML">
+        <div class="card-title">Markets</div>
+        <div class="no-data">Loading...</div>
+    </section>
+
+    <section class="card card-finance"
+             hx-get="/partials/news/finance" hx-trigger="load, every 900s" hx-swap="innerHTML">
+        <div class="card-title">Finance & Economics</div>
+        <div class="no-data">Loading...</div>
+    </section>
+
+    <section class="card card-tech"
+             hx-get="/partials/news/tech" hx-trigger="load, every 900s" hx-swap="innerHTML">
+        <div class="card-title">Tech & Science</div>
+        <div class="no-data">Loading...</div>
+    </section>
+
+    <section class="card card-github"
+             hx-get="/partials/github" hx-trigger="load, every 300s" hx-swap="innerHTML">
+        <div class="card-title">GitHub Activity</div>
+        <div class="no-data">Loading...</div>
+    </section>
+
+    <section class="card card-calendar"
+             hx-get="/partials/calendar" hx-trigger="load, every 600s" hx-swap="innerHTML">
+        <div class="card-title">Calendar</div>
+        <div class="no-data">Loading...</div>
+    </section>
+
+    <section class="card card-system"
+             hx-get="/partials/system" hx-trigger="load, every 5s" hx-swap="innerHTML">
+        <div class="card-title">System</div>
+        <div class="no-data">Loading...</div>
+    </section>
+
+    <section class="card card-docker"
+             hx-get="/partials/docker" hx-trigger="load, every 10s" hx-swap="innerHTML">
+        <div class="card-title">Docker Containers</div>
+        <div class="no-data">Loading...</div>
+    </section>
+</main>
+{% endblock %}

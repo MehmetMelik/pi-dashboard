@@ -1,0 +1,48 @@
+<div class="card-title"><span class="title-icon">&gt;_</span> Tech & Science</div>
+
+{% if articles %}
+<div class="featured-articles">
+    {% for a in articles[:5] %}
+    <a class="featured-card" href="{{ a.url }}" target="_blank" rel="noopener">
+        {% if a.image_url %}
+        <div class="featured-img" style="background-image: url('{{ a.image_url }}')"></div>
+        {% else %}
+        <div class="featured-img featured-img-placeholder">
+            <span>&gt;_</span>
+        </div>
+        {% endif %}
+        <div class="featured-body">
+            <div class="featured-title">{{ a.title }}</div>
+            <div class="featured-meta">
+                <span class="article-source">{{ a.source }}</span>
+                {% if a.score %}<span class="article-score">&#9650; {{ a.score }}</span>{% endif %}
+                {% if a.published %}<span>{{ a.published[:10] }}</span>{% endif %}
+            </div>
+            {% if a.ai_summary %}
+            <div class="article-ai-summary">{{ a.ai_summary }}</div>
+            {% endif %}
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+{% if articles[5:] %}
+<ul class="article-list">
+    {% for a in articles[5:] %}
+    <li class="article-item">
+        <a class="article-link" href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a>
+        <div class="article-meta">
+            <span class="article-source">{{ a.source }}</span>
+            {% if a.score %}<span class="article-score">&#9650; {{ a.score }}</span>{% endif %}
+            {% if a.published %}<span>{{ a.published[:10] }}</span>{% endif %}
+        </div>
+        {% if a.ai_summary %}
+        <div class="article-ai-summary">{{ a.ai_summary }}</div>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% else %}
+<div class="no-data">Loading tech news...</div>
+{% endif %}

@@ -1,0 +1,40 @@
+<div class="card-title"><span class="title-icon">{{ weather.current.icon if weather else '...' }}</span> Weather — London</div>
+
+{% if weather %}
+<div class="weather-hero">
+    <div class="weather-hero-left">
+        <div class="weather-temp-big">{{ "%.0f"|format(weather.current.temp) }}°</div>
+        <div class="weather-desc">{{ weather.current.description }}</div>
+    </div>
+    <div class="weather-hero-right">
+        <div class="weather-detail-row">
+            <span class="weather-detail-label">Feels like</span>
+            <span class="weather-detail-val">{{ "%.0f"|format(weather.current.feels_like) }}°C</span>
+        </div>
+        <div class="weather-detail-row">
+            <span class="weather-detail-label">Humidity</span>
+            <span class="weather-detail-val">{{ weather.current.humidity }}%</span>
+        </div>
+        <div class="weather-detail-row">
+            <span class="weather-detail-label">Wind</span>
+            <span class="weather-detail-val">{{ "%.0f"|format(weather.current.wind) }} km/h</span>
+        </div>
+    </div>
+</div>
+
+<div class="forecast-grid">
+    {% for day in weather.forecast %}
+    <div class="forecast-day">
+        <div class="day-name">{{ day.weekday }}</div>
+        <div class="day-icon">{{ day.icon }}</div>
+        <div class="day-high">{{ "%.0f"|format(day.high) }}°</div>
+        <div class="day-low">{{ "%.0f"|format(day.low) }}°</div>
+        {% if day.precip %}
+        <div class="day-precip">{{ day.precip }}%</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="no-data">Loading weather data...</div>
+{% endif %}

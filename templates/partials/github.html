@@ -1,0 +1,84 @@
+<div class="card-title"><span class="title-icon">&#9679;</span> GitHub Activity
+    {% if activity and activity.contributions %}
+    <span class="gh-total">{{ activity.contributions.total }} contributions this year</span>
+    {% endif %}
+</div>
+
+{% if activity %}
+{% if activity.contributions %}
+<div class="contrib-graph">
+    <div class="contrib-container">
+        <!-- Day labels (left axis) -->
+        <div class="contrib-day-labels">
+            <div class="contrib-day-label"></div>
+            <div class="contrib-day-label">Mon</div>
+            <div class="contrib-day-label"></div>
+            <div class="contrib-day-label">Wed</div>
+            <div class="contrib-day-label"></div>
+            <div class="contrib-day-label">Fri</div>
+            <div class="contrib-day-label"></div>
+        </div>
+
+        <div class="contrib-main">
+            <!-- Month labels (top axis) -->
+            <div class="contrib-month-labels">
+                {% for m in activity.contributions.months %}
+                <span class="contrib-month" style="grid-column: {{ m.index + 1 }}">{{ m.name }}</span>
+                {% endfor %}
+            </div>
+
+            <!-- Squares grid -->
+            <div class="contrib-grid">
+                {% for week in activity.contributions.weeks %}
+                <div class="contrib-week">
+                    {% for day in week %}
+                    <div class="contrib-day level-{{ day.level }}" title="{{ day.date }}: {{ day.count }} contribution{{ 's' if day.count != 1 else '' }}"></div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="contrib-legend">
+        <span class="contrib-legend-label">Less</span>
+        <div class="contrib-day level-0"></div>
+        <div class="contrib-day level-1"></div>
+        <div class="contrib-day level-2"></div>
+        <div class="contrib-day level-3"></div>
+        <div class="contrib-day level-4"></div>
+        <span class="contrib-legend-label">More</span>
+    </div>
+</div>
+{% endif %}
+
+{% if activity.events %}
+<div class="gh-events">
+    {% for e in activity.events %}
+    <a class="gh-event" href="{{ e.url }}" target="_blank" rel="noopener">
+        <div class="gh-icon gh-icon-{{ e.type }}">
+            {% if e.type == 'push' %}&#8593;
+            {% elif e.type == 'pr' %}&#8634;
+            {% elif e.type == 'issue' %}&#9673;
+            {% elif e.type == 'star' %}&#9733;
+            {% elif e.type == 'fork' %}&#9095;
+            {% elif e.type == 'comment' %}&#9993;
+            {% elif e.type == 'create' %}+
+            {% elif e.type == 'delete' %}&times;
+            {% elif e.type == 'release' %}&#9654;
+            {% else %}&#9679;{% endif %}
+        </div>
+        <div class="gh-body">
+            <div class="gh-desc">{{ e.description }}</div>
+            <div class="gh-meta">
+                <span class="gh-repo">{{ e.repo }}</span>
+                <span class="gh-time">{{ e.time }}</span>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+{% else %}
+<div class="no-data">No recent GitHub activity</div>
+{% endif %}

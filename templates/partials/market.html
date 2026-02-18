@@ -1,0 +1,33 @@
+<div class="card-title"><span class="title-icon">&#9650;</span> Markets</div>
+
+{% if tickers %}
+<div class="ticker-grid">
+    {% for t in tickers %}
+    <div class="ticker-card {% if t.price %}{% if t.up %}ticker-up{% else %}ticker-down{% endif %}{% endif %}">
+        <div class="ticker-header">
+            <span class="ticker-icon">{{ t.icon }}</span>
+            <span class="ticker-name">{{ t.name }}</span>
+        </div>
+        {% if t.price %}
+        <div class="ticker-price">
+            {% if t.symbol in ('^GSPC', '^IXIC', '^FTSE', '^DJI') %}
+                {{ "{:,.0f}".format(t.price) }}
+            {% elif t.symbol == 'BTC-USD' %}
+                ${{ "{:,.0f}".format(t.price) }}
+            {% else %}
+                ${{ "{:,.2f}".format(t.price) }}
+            {% endif %}
+        </div>
+        <div class="ticker-change {% if t.up %}change-up{% else %}change-down{% endif %}">
+            <span class="change-arrow">{% if t.up %}&#9650;{% else %}&#9660;{% endif %}</span>
+            {{ "{:+.2f}".format(t.change_pct) }}%
+        </div>
+        {% else %}
+        <div class="ticker-price ticker-na">--</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="no-data">Loading market data...</div>
+{% endif %}
