@@ -6,6 +6,8 @@ A personal dark-themed web dashboard built for Raspberry Pi. Combines live weath
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.129-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
+![Pi Dashboard](screenshot.png)
+
 ## Features
 
 | Panel | Source | Refresh |
@@ -28,10 +30,6 @@ A personal dark-themed web dashboard built for Raspberry Pi. Combines live weath
 - **APIs**: Open-Meteo (weather), Yahoo Finance (markets), GitHub REST/GraphQL, Google Calendar ICS
 - **News**: RSS via feedparser + Hacker News JSON API + og:image scraping for thumbnails
 - **AI**: Optional Ollama integration for article summaries
-
-## Screenshots
-
-The dashboard features a modern dark theme with CSS Grid layout, responsive breakpoints, and HTMX-powered live updates without page reloads.
 
 ## Quick Start
 
