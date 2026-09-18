@@ -18,11 +18,24 @@ WEATHER_INTERVAL = 1800  # 30 minutes
 # News refresh interval
 NEWS_INTERVAL = 900  # 15 minutes
 
-# Ollama
-OLLAMA_URL = "http://localhost:11434"
-OLLAMA_MODEL = "qwen2.5:3b"
-OLLAMA_SUMMARY_DELAY = 3  # seconds between summaries
-OLLAMA_ENABLED = True
+# AI summaries — produced by the news-firebase pipeline (a superset of these
+# feeds, summarized with a local LLM, keyed by sha256(url)[:16]). The dashboard
+# reuses those summaries instead of running its own summarizer.
+#
+# Primary source is a local SQLite mirror news-firebase writes on the same box —
+# zero network, zero Firestore reads. Firestore is only a fallback used when that
+# mirror file is absent (e.g. news-firebase hasn't created it yet). Read-only;
+# degrades gracefully — unmatched articles just stay unsummarized and retry.
+SUMMARY_MIRROR_PATH = os.environ.get(
+    "SUMMARY_MIRROR_PATH", "/home/melik/dev/news-firebase/summaries.db"
+)
+FIRESTORE_ENABLED = True             # fallback only, when the local mirror is unavailable
+FIREBASE_CRED_PATH = os.environ.get(
+    "FIREBASE_CRED_PATH", "/home/melik/dev/news-firebase/service-account.json"
+)
+FIRESTORE_COLLECTION = "articles"
+FIRESTORE_ENRICH_INTERVAL = 900     # seconds between enrichment passes
+FIRESTORE_QUOTA_BACKOFF = 3600      # back off this long when the Firestore read quota is exhausted
 
 # Market tickers
 MARKET_INTERVAL = 300  # 5 minutes
@@ -36,6 +49,32 @@ CALENDAR_INTERVAL = 600  # 10 minutes
 
 # Docker socket
 DOCKER_SOCKET = "/var/run/docker.sock"
+
+# Pi-hole
+PIHOLE_INTERVAL = 300  # 5 minutes
+
+# WireGuard
+WIREGUARD_INTERVAL = 60  # 1 minute
+
+# Service health
+HEALTH_INTERVAL = 60  # 1 minute
+
+# Speed test
+SPEEDTEST_INTERVAL = 86400  # 24 hours
+
+# Quick links
+BOOKMARKS = [
+    {"name": "Gitea", "url": "http://192.168.86.40:3300", "icon": "G"},
+    {"name": "Pi-hole", "url": "http://192.168.86.40/admin", "icon": "P"},
+    {"name": "Open WebUI", "url": "http://192.168.86.40:3000", "icon": "W"},
+    {"name": "wg-easy", "url": "http://192.168.86.40:51821", "icon": "V"},
+]
+
+# Custom RSS feeds
+CUSTOM_FEEDS = [
+    ("Hacker News Best", "https://hnrss.org/best"),
+]
+CUSTOM_FEED_MAX = 10
 
 # RSS Feeds — Finance / Economics
 FINANCE_FEEDS = [

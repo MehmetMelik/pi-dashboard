@@ -5,49 +5,91 @@
     <section class="card card-weather"
              hx-get="/partials/weather" hx-trigger="load, every 1800s" hx-swap="innerHTML">
         <div class="card-title">Weather — London</div>
-        <div class="no-data">Loading...</div>
+        <div class="skeleton"></div>
     </section>
 
     <section class="card card-market"
              hx-get="/partials/market" hx-trigger="load, every 300s" hx-swap="innerHTML">
         <div class="card-title">Markets</div>
-        <div class="no-data">Loading...</div>
+        <div class="skeleton"></div>
     </section>
 
-    <section class="card card-finance"
+    <section class="card card-finance wide"
              hx-get="/partials/news/finance" hx-trigger="load, every 900s" hx-swap="innerHTML">
         <div class="card-title">Finance & Economics</div>
-        <div class="no-data">Loading...</div>
+        <div class="skeleton"></div>
     </section>
 
     <section class="card card-tech"
              hx-get="/partials/news/tech" hx-trigger="load, every 900s" hx-swap="innerHTML">
         <div class="card-title">Tech & Science</div>
-        <div class="no-data">Loading...</div>
+        <div class="skeleton"></div>
     </section>
 
-    <section class="card card-github"
+    <section class="card card-github wide"
              hx-get="/partials/github" hx-trigger="load, every 300s" hx-swap="innerHTML">
         <div class="card-title">GitHub Activity</div>
-        <div class="no-data">Loading...</div>
+        <div class="skeleton"></div>
     </section>
 
     <section class="card card-calendar"
              hx-get="/partials/calendar" hx-trigger="load, every 600s" hx-swap="innerHTML">
         <div class="card-title">Calendar</div>
-        <div class="no-data">Loading...</div>
+        <div class="skeleton"></div>
     </section>
 
-    <section class="card card-system"
+    <section class="card card-pihole"
+             hx-get="/partials/pihole" hx-trigger="load, every 300s" hx-swap="innerHTML">
+        <div class="card-title">Pi-hole</div>
+        <div class="skeleton"></div>
+    </section>
+
+    <section class="card card-wireguard"
+             hx-get="/partials/wireguard" hx-trigger="load, every 60s" hx-swap="innerHTML">
+        <div class="card-title">WireGuard VPN</div>
+        <div class="skeleton"></div>
+    </section>
+
+    <section class="card card-health"
+             hx-get="/partials/health" hx-trigger="load, every 60s" hx-swap="innerHTML">
+        <div class="card-title">Services</div>
+        <div class="skeleton"></div>
+    </section>
+
+    <section class="card card-system wide"
              hx-get="/partials/system" hx-trigger="load, every 5s" hx-swap="innerHTML">
         <div class="card-title">System</div>
-        <div class="no-data">Loading...</div>
+        <div class="skeleton"></div>
     </section>
 
     <section class="card card-docker"
              hx-get="/partials/docker" hx-trigger="load, every 10s" hx-swap="innerHTML">
         <div class="card-title">Docker Containers</div>
-        <div class="no-data">Loading...</div>
+        <div class="skeleton"></div>
+    </section>
+
+    <section class="card card-speedtest"
+             hx-get="/partials/speedtest" hx-trigger="load, every 1800s" hx-swap="innerHTML">
+        <div class="card-title">Speed Test</div>
+        <div class="skeleton"></div>
+    </section>
+
+    <section class="card card-bookmarks"
+             hx-get="/partials/bookmarks" hx-trigger="load" hx-swap="innerHTML">
+        <div class="card-title">Quick Links</div>
+        <div class="skeleton"></div>
+    </section>
+
+    <section class="card card-customfeed"
+             hx-get="/partials/customfeed" hx-trigger="load, every 900s" hx-swap="innerHTML">
+        <div class="card-title">RSS Feeds</div>
+        <div class="skeleton"></div>
+    </section>
+
+    <section class="card card-sys-history full"
+             hx-get="/partials/sys_history" hx-trigger="load" hx-swap="innerHTML">
+        <div class="card-title">System History</div>
+        <div class="skeleton"></div>
     </section>
 </main>
 {% endblock %}

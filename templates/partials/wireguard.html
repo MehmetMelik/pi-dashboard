@@ -1,0 +1,21 @@
+<div class="card-title"><span class="title-icon">&#9670;</span> WireGuard VPN</div>
+
+{% if clients %}
+<div class="wg-list">
+    {% for c in clients %}
+    <div class="wg-row">
+        <span class="state-dot {% if c.connected %}state-running{% elif c.enabled %}state-paused{% else %}state-exited{% endif %}"></span>
+        <div class="wg-info">
+            <div class="wg-name">{{ c.name }}</div>
+            <div class="wg-detail">{{ c.address }} &middot; last seen {{ c.handshake }}</div>
+        </div>
+        <div class="wg-transfer">
+            <span class="net-arrow up">&#9650;</span> {{ c.tx }}
+            <span class="net-arrow down" style="margin-left: 6px">&#9660;</span> {{ c.rx }}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="no-data">Loading VPN status...</div>
+{% endif %}

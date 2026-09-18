@@ -1,0 +1,49 @@
+<div class="card-title"><span class="title-icon">&#9889;</span> Speed Test</div>
+
+{% if speed %}
+<div class="speed-grid">
+    <div class="speed-stat">
+        <div class="speed-value text-green">{{ speed.download }}</div>
+        <div class="speed-unit">Mbps</div>
+        <div class="speed-label">Download</div>
+    </div>
+    <div class="speed-stat">
+        <div class="speed-value text-accent">{{ speed.upload }}</div>
+        <div class="speed-unit">Mbps</div>
+        <div class="speed-label">Upload</div>
+    </div>
+    <div class="speed-stat">
+        <div class="speed-value text-amber">{{ speed.ping }}</div>
+        <div class="speed-unit">ms</div>
+        <div class="speed-label">Ping</div>
+    </div>
+</div>
+{% if speed.server %}
+<div class="speed-server">{{ speed.server }}</div>
+{% endif %}
+{% else %}
+<div class="no-data">Running speed test...</div>
+{% endif %}
+
+{% if history %}
+<table class="speed-history">
+    <thead>
+        <tr>
+            <th>Time</th>
+            <th>Down</th>
+            <th>Up</th>
+            <th>Ping</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for h in history %}
+        <tr>
+            <td>{{ h.time }}</td>
+            <td class="text-green">{{ h.download }}</td>
+            <td class="text-accent">{{ h.upload }}</td>
+            <td class="text-amber">{{ h.ping }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}

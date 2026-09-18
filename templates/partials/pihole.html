@@ -1,0 +1,32 @@
+<div class="card-title"><span class="title-icon">&#9680;</span> Pi-hole</div>
+
+{% if stats %}
+<div class="pihole-grid">
+    <div class="pihole-stat">
+        <div class="pihole-value text-accent">{{ "{:,}".format(stats.total_queries) }}</div>
+        <div class="pihole-label">Queries</div>
+    </div>
+    <div class="pihole-stat">
+        <div class="pihole-value text-red">{{ "{:,}".format(stats.blocked) }}</div>
+        <div class="pihole-label">Blocked</div>
+    </div>
+    <div class="pihole-stat">
+        <div class="pihole-value {% if stats.percent_blocked > 10 %}text-green{% else %}text-amber{% endif %}">{{ stats.percent_blocked }}%</div>
+        <div class="pihole-label">Blocked %</div>
+    </div>
+    <div class="pihole-stat">
+        <div class="pihole-value text-accent">{{ "{:,}".format(stats.domains_blocked) }}</div>
+        <div class="pihole-label">Blocklist</div>
+    </div>
+    <div class="pihole-stat">
+        <div class="pihole-value" style="color: var(--text-secondary)">{{ "{:,}".format(stats.cached) }}</div>
+        <div class="pihole-label">Cached</div>
+    </div>
+    <div class="pihole-stat">
+        <div class="pihole-value" style="color: var(--text-secondary)">{{ stats.active_clients }}</div>
+        <div class="pihole-label">Clients</div>
+    </div>
+</div>
+{% else %}
+<div class="no-data">Loading Pi-hole stats...</div>
+{% endif %}

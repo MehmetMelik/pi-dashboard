@@ -3,6 +3,7 @@
 {% if tickers %}
 <div class="ticker-grid">
     {% for t in tickers %}
+    <a href="{{ t.url }}" target="_blank" rel="noopener" class="ticker-link">
     <div class="ticker-card {% if t.price %}{% if t.up %}ticker-up{% else %}ticker-down{% endif %}{% endif %}">
         <div class="ticker-header">
             <span class="ticker-icon">{{ t.icon }}</span>
@@ -22,10 +23,14 @@
             <span class="change-arrow">{% if t.up %}&#9650;{% else %}&#9660;{% endif %}</span>
             {{ "{:+.2f}".format(t.change_pct) }}%
         </div>
+        {% if t.sparkline %}
+        <div class="ticker-sparkline">{{ t.sparkline | safe }}</div>
+        {% endif %}
         {% else %}
         <div class="ticker-price ticker-na">--</div>
         {% endif %}
     </div>
+    </a>
     {% endfor %}
 </div>
 {% else %}

@@ -1,0 +1,14 @@
+<div class="card-title"><span class="title-icon">&#9729;</span> Services</div>
+
+{% if services %}
+<div class="health-grid">
+    {% for s in services %}
+    <div class="health-item">
+        <span class="state-dot {% if s.up %}state-running{% else %}state-exited{% endif %}"></span>
+        <span class="health-name">{{ s.name }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="no-data">Checking services...</div>
+{% endif %}

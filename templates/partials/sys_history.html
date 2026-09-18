@@ -1,0 +1,147 @@
+<div class="card-title"><span class="title-icon">&#9729;</span> System History (24h)</div>
+
+<div class="sys-history">
+    <div class="sys-chart-block">
+        <div class="sys-chart-label">CPU Temperature (&deg;C)</div>
+        <div class="sys-chart-canvas-wrap"><canvas id="sys-chart-temp"></canvas></div>
+    </div>
+    <div class="sys-chart-block">
+        <div class="sys-chart-label">CPU Load per Core (%)</div>
+        <div class="sys-chart-canvas-wrap"><canvas id="sys-chart-cores"></canvas></div>
+    </div>
+</div>
+
+<script>
+(function() {
+    if (window.__sysHistoryInit) return;
+    window.__sysHistoryInit = true;
+
+    const coreColors = [
+        '#4ade80', '#60a5fa', '#f472b6', '#fbbf24',
+        '#a78bfa', '#34d399', '#fb7185', '#38bdf8',
+    ];
+
+    let tempChart = null;
+    let coresChart = null;
+
+    function fmtTime(ts) {
+        const d = new Date(ts * 1000);
+        return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function buildCharts(data) {
+        const labels = data.timestamps.map(fmtTime);
+
+        const tempCtx = document.getElementById('sys-chart-temp');
+        if (!tempCtx) return;
+
+        const axisColor = getComputedStyle(document.documentElement).getPropertyValue('--text-dim') || '#888';
+        const gridColor = 'rgba(128,128,128,0.15)';
+
+        const commonOpts = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { labels: { color: axisColor, font: { size: 10 } } },
+                tooltip: { enabled: true },
+            },
+            scales: {
+                x: {
+                    ticks: { color: axisColor, font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
+                    grid: { color: gridColor },
+                },
+                y: {
+                    ticks: { color: axisColor, font: { size: 9 } },
+                    grid: { color: gridColor },
+                },
+            },
+        };
+
+        tempChart = new Chart(tempCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Temp',
+                    data: data.cpu_temp,
+                    borderColor: '#f97316',
+                    backgroundColor: 'rgba(249,115,22,0.15)',
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    tension: 0.3,
+                    fill: true,
+                }],
+            },
+            options: Object.assign({}, commonOpts, {
+                scales: Object.assign({}, commonOpts.scales, {
+                    y: Object.assign({}, commonOpts.scales.y, {
+                        suggestedMin: 40,
+                        suggestedMax: 90,
+                    }),
+                }),
+            }),
+        });
+
+        const coresCtx = document.getElementById('sys-chart-cores');
+        const coreDatasets = data.cpu_cores.map((values, i) => ({
+            label: 'C' + i,
+            data: values,
+            borderColor: coreColors[i % coreColors.length],
+            backgroundColor: coreColors[i % coreColors.length] + '22',
+            borderWidth: 1.2,
+            pointRadius: 0,
+            tension: 0.3,
+            fill: false,
+        }));
+
+        coresChart = new Chart(coresCtx, {
+            type: 'line',
+            data: { labels: labels, datasets: coreDatasets },
+            options: Object.assign({}, commonOpts, {
+                scales: Object.assign({}, commonOpts.scales, {
+                    y: Object.assign({}, commonOpts.scales.y, {
+                        min: 0,
+                        max: 100,
+                    }),
+                }),
+            }),
+        });
+    }
+
+    function updateCharts(data) {
+        if (!tempChart || !coresChart) return;
+        const labels = data.timestamps.map(fmtTime);
+        tempChart.data.labels = labels;
+        tempChart.data.datasets[0].data = data.cpu_temp;
+        tempChart.update('none');
+
+        coresChart.data.labels = labels;
+        data.cpu_cores.forEach((values, i) => {
+            if (coresChart.data.datasets[i]) {
+                coresChart.data.datasets[i].data = values;
+            }
+        });
+        coresChart.update('none');
+    }
+
+    async function load() {
+        try {
+            const r = await fetch('/api/system/history');
+            const data = await r.json();
+            if (!data.timestamps || data.timestamps.length === 0) return;
+            if (!tempChart) {
+                buildCharts(data);
+            } else {
+                updateCharts(data);
+            }
+        } catch (e) {
+            console.warn('sys history fetch failed', e);
+        }
+    }
+
+    load();
+    setInterval(load, 60000);
+})();
+</script>

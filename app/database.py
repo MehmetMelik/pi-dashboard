@@ -50,6 +50,24 @@ def init_db():
             data TEXT NOT NULL,
             fetched_at REAL NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS speedtests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            download REAL NOT NULL,
+            upload REAL NOT NULL,
+            ping REAL NOT NULL,
+            server TEXT,
+            tested_at REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_speedtests_at ON speedtests(tested_at);
+
+        CREATE TABLE IF NOT EXISTS system_stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cpu_temp REAL,
+            cpu_cores TEXT NOT NULL,
+            sampled_at REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_sysstats_at ON system_stats(sampled_at);
     """)
     # Migration: add image_url if missing (existing DB)
     try:
@@ -124,7 +142,7 @@ def load_articles(category: str, limit: int = 15) -> list[dict]:
 def get_unsummarized_articles(limit: int = 5) -> list[dict]:
     conn = get_conn()
     rows = conn.execute(
-        """SELECT id, title, summary FROM articles
+        """SELECT id, url, title, summary FROM articles
            WHERE ai_summary IS NULL
            ORDER BY fetched_at DESC
            LIMIT ?""",
@@ -132,6 +150,55 @@ def get_unsummarized_articles(limit: int = 5) -> list[dict]:
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+# --- Speed test helpers ---
+
+def save_speedtest(download: float, upload: float, ping: float, server: str):
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO speedtests (download, upload, ping, server, tested_at) VALUES (?, ?, ?, ?, ?)",
+        (download, upload, ping, server, time.time()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def load_speedtests(limit: int = 10) -> list[dict]:
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT download, upload, ping, server, tested_at FROM speedtests ORDER BY tested_at DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def save_system_stats(cpu_temp: Optional[float], cpu_cores: list[float]):
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO system_stats (cpu_temp, cpu_cores, sampled_at) VALUES (?, ?, ?)",
+        (cpu_temp, json.dumps(cpu_cores), time.time()),
+    )
+    # Prune samples older than 24 hours
+    cutoff = time.time() - 86400
+    conn.execute("DELETE FROM system_stats WHERE sampled_at < ?", (cutoff,))
+    conn.commit()
+    conn.close()
+
+
+def load_system_stats(hours: int = 24) -> list[dict]:
+    conn = get_conn()
+    cutoff = time.time() - (hours * 3600)
+    rows = conn.execute(
+        "SELECT cpu_temp, cpu_cores, sampled_at FROM system_stats WHERE sampled_at >= ? ORDER BY sampled_at ASC",
+        (cutoff,),
+    ).fetchall()
+    conn.close()
+    return [
+        {"cpu_temp": r["cpu_temp"], "cpu_cores": json.loads(r["cpu_cores"]), "sampled_at": r["sampled_at"]}
+        for r in rows
+    ]
 
 
 def set_ai_summary(article_id: int, summary: str):

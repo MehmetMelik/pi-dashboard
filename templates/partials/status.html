@@ -1,0 +1,14 @@
+<div class="statusbar-inner">
+    {% for p in pills %}
+    <div class="status-pill pill-{{ p.level }}">
+        <span class="status-dot"></span>
+        <span class="status-label">{{ p.label }}</span>
+        <span class="status-value">{{ p.value }}</span>
+    </div>
+    {% else %}
+    <div class="status-pill pill-idle">
+        <span class="status-dot"></span>
+        <span class="status-label">Booting</span>
+    </div>
+    {% endfor %}
+</div>

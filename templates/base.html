@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pi Dashboard</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v={{ css_version }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script src="https://unpkg.com/sortablejs@1.15.6/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <header class="header">
@@ -16,8 +18,16 @@
             <div class="logo">Pi</div>
             <h1>Dashboard</h1>
         </div>
-        <div class="clock" id="clock"></div>
+        <div style="display:flex;align-items:center;gap:8px">
+            <button class="theme-toggle" id="theme-toggle" title="Toggle theme">&#9790;</button>
+            <div class="clock" id="clock"></div>
+        </div>
     </header>
+
+    <div class="statusbar" id="statusbar"
+         hx-get="/partials/status" hx-trigger="load, every 10s" hx-swap="innerHTML">
+        <div class="statusbar-inner"><div class="status-pill pill-idle"><span class="status-dot"></span><span class="status-label">Loading</span></div></div>
+    </div>
 
     {% block content %}{% endblock %}
 
@@ -29,6 +39,85 @@
         }
         updateClock();
         setInterval(updateClock, 1000);
+
+        // Masonry: cards are placed on fine 8px row tracks; give each card a
+        // row-span matching its content height so short cards don't leave gaps.
+        (function() {
+            const grid = document.querySelector('.dashboard');
+            if (!grid) return;
+            grid.classList.add('masonry-ready');
+            function layoutAll() {
+                // Read the live row track + gap so the math is correct at every
+                // breakpoint (the gap shrinks on mobile).
+                const cs = getComputedStyle(grid);
+                const row = parseFloat(cs.gridAutoRows) || 8;
+                const gap = parseFloat(cs.rowGap) || 0;
+                grid.querySelectorAll('.card').forEach(card => {
+                    card.style.gridRowEnd = 'span 1';        // reset so we measure content height
+                    const h = card.getBoundingClientRect().height;
+                    const span = Math.max(1, Math.ceil((h + gap) / (row + gap)));
+                    card.style.gridRowEnd = 'span ' + span;
+                });
+            }
+            window.__layoutDashboard = layoutAll;
+            let t;
+            const relayout = () => { clearTimeout(t); t = setTimeout(layoutAll, 60); };
+            // Recompute whenever HTMX swaps content into a card, on resize, and once fonts load
+            document.body.addEventListener('htmx:afterSwap', relayout);
+            window.addEventListener('resize', relayout);
+            window.addEventListener('load', layoutAll);
+            if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutAll);
+            setTimeout(layoutAll, 400);
+            layoutAll();
+        })();
+
+        // Drag-and-drop widget reordering
+        (function() {
+            const grid = document.querySelector('.dashboard');
+            if (!grid) return;
+            const saved = localStorage.getItem('widget-order');
+            if (saved) {
+                try {
+                    const order = JSON.parse(saved);
+                    const map = {};
+                    Array.from(grid.children).forEach(el => {
+                        const cls = Array.from(el.classList).find(c => c.startsWith('card-'));
+                        if (cls) map[cls] = el;
+                    });
+                    order.forEach(cls => { if (map[cls]) grid.appendChild(map[cls]); });
+                    if (window.__layoutDashboard) window.__layoutDashboard();
+                } catch(e) {}
+            }
+            Sortable.create(grid, {
+                animation: 200,
+                ghostClass: 'sortable-ghost',
+                handle: '.card-title',
+                onEnd: function() {
+                    const order = Array.from(grid.children).map(el =>
+                        Array.from(el.classList).find(c => c.startsWith('card-'))
+                    ).filter(Boolean);
+                    localStorage.setItem('widget-order', JSON.stringify(order));
+                    if (window.__layoutDashboard) window.__layoutDashboard();
+                }
+            });
+        })();
+
+        // Theme toggle
+        (function() {
+            const btn = document.getElementById('theme-toggle');
+            const saved = localStorage.getItem('theme');
+            if (saved) {
+                document.documentElement.setAttribute('data-theme', saved);
+                btn.textContent = saved === 'light' ? '\u2600' : '\u263E';
+            }
+            btn.addEventListener('click', function() {
+                const current = document.documentElement.getAttribute('data-theme');
+                const next = current === 'light' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('theme', next);
+                btn.textContent = next === 'light' ? '\u2600' : '\u263E';
+            });
+        })();
     </script>
 </body>
 </html>

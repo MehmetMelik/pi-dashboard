@@ -1,0 +1,10 @@
+<div class="card-title"><span class="title-icon">&#9733;</span> Quick Links</div>
+
+<div class="bookmarks-grid">
+    {% for b in bookmarks %}
+    <a href="{{ b.url }}" target="_blank" rel="noopener" class="bookmark-link">
+        <div class="bookmark-icon">{{ b.icon }}</div>
+        <div class="bookmark-name">{{ b.name }}</div>
+    </a>
+    {% endfor %}
+</div>

@@ -5,3 +5,4 @@ httpx
 python-multipart
 jinja2
 psutil
+firebase-admin

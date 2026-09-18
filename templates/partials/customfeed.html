@@ -1,0 +1,17 @@
+<div class="card-title"><span class="title-icon">&#9776;</span> RSS Feeds</div>
+
+{% if articles %}
+<ul class="article-list">
+    {% for a in articles %}
+    <li class="article-item">
+        <a href="{{ a.url }}" target="_blank" rel="noopener" class="article-link">{{ a.title }}</a>
+        <div class="article-meta">
+            <span class="article-source">{{ a.source }}</span>
+            {% if a.published %}<span>{{ a.published }}</span>{% endif %}
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="no-data">Loading feeds...</div>
+{% endif %}
