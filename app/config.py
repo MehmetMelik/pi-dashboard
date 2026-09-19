@@ -101,3 +101,11 @@ HN_MAX_STORIES = 20
 
 # Articles per category to display
 ARTICLES_PER_CATEGORY = 15
+
+# Operational alerts (ntfy push). The dashboard is always up, so it watches the
+# news backend and pushes to Melik's phone when it's down or stale. Topic is a
+# secret set in .env (gitignored); empty disables alerting.
+NTFY_URL = os.environ.get("NTFY_URL", "https://ntfy.sh")
+NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")
+OPS_MONITOR_INTERVAL = 300          # seconds between backend health checks
+NEWS_STALE_ALERT_MIN = 180          # alert if newest article older than this (min)

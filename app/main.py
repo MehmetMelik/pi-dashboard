@@ -12,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import (
     WEATHER_INTERVAL, NEWS_INTERVAL, FIRESTORE_ENRICH_INTERVAL,
-    FIRESTORE_QUOTA_BACKOFF,
+    FIRESTORE_QUOTA_BACKOFF, OPS_MONITOR_INTERVAL,
     MARKET_INTERVAL, GITHUB_INTERVAL, CALENDAR_INTERVAL,
     PIHOLE_INTERVAL, WIREGUARD_INTERVAL, HEALTH_INTERVAL,
     SPEEDTEST_INTERVAL, BOOKMARKS,
@@ -20,7 +20,7 @@ from app.config import (
 from app.database import init_db, save_system_stats, load_system_stats
 from app.services import system, weather, news, docker, summaries, market, github
 from app.services import calendar as cal_service
-from app.services import pihole, wireguard, health, speedtest, customfeed
+from app.services import pihole, wireguard, health, speedtest, customfeed, ops_alerts
 
 BASE_DIR = Path(__file__).parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -91,6 +91,18 @@ async def summaries_loop():
             else:
                 print(f"[bg] summary enrich error: {e}")
         await asyncio.sleep(delay)
+
+
+async def ops_monitor_loop():
+    # Watch the news backend and push ntfy alerts if it's down or stale. Runs in
+    # a worker thread (systemctl + urllib are blocking).
+    await asyncio.sleep(45)
+    while True:
+        try:
+            await asyncio.to_thread(ops_alerts.check_once)
+        except Exception as e:
+            print(f"[bg] ops monitor error: {e}")
+        await asyncio.sleep(OPS_MONITOR_INTERVAL)
 
 
 async def pihole_loop():
@@ -172,6 +184,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(speedtest_loop()),
         asyncio.create_task(customfeed_loop()),
         asyncio.create_task(system_stats_loop()),
+        asyncio.create_task(ops_monitor_loop()),
     ]
     yield
     for t in tasks:
