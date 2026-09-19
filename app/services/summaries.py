@@ -34,6 +34,22 @@ def _mirror_available() -> bool:
     return bool(SUMMARY_MIRROR_PATH) and os.path.exists(SUMMARY_MIRROR_PATH)
 
 
+def latest_article_ts() -> float | None:
+    """Newest article pushed_at (epoch) from the local mirror — used as a
+    liveness signal for the news pipeline. None if the mirror is unavailable."""
+    if not _mirror_available():
+        return None
+    try:
+        conn = sqlite3.connect(f"file:{SUMMARY_MIRROR_PATH}?mode=ro", uri=True, timeout=5)
+        try:
+            row = conn.execute("SELECT MAX(pushed_at) FROM recent").fetchone()
+            return row[0] if row and row[0] else None
+        finally:
+            conn.close()
+    except Exception:
+        return None
+
+
 def _enrich_from_mirror(articles: list[dict]) -> int:
     # Open read-only so we never interfere with news-firebase's writes.
     conn = sqlite3.connect(f"file:{SUMMARY_MIRROR_PATH}?mode=ro", uri=True, timeout=5)

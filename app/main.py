@@ -1,6 +1,7 @@
 """Pi Dashboard — FastAPI application."""
 
 import asyncio
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -233,6 +234,20 @@ def _status_pills() -> list[dict]:
         pct = (p or {}).get("percent_blocked")
         if pct is not None:
             pills.append({"label": "BLOCK", "value": f"{pct:.0f}%", "level": "ok"})
+    except Exception:
+        pass
+    try:
+        ts = summaries.latest_article_ts()
+        if ts:
+            age_min = (time.time() - ts) / 60
+            lvl = "ok" if age_min < 90 else "warn" if age_min < 360 else "crit"
+            if age_min < 90:
+                val = f"{int(age_min)}m"
+            elif age_min < 1440:
+                val = f"{int(age_min / 60)}h"
+            else:
+                val = f"{int(age_min / 1440)}d"
+            pills.append({"label": "NEWS", "value": val, "level": lvl})
     except Exception:
         pass
     if uptime:
