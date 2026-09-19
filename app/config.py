@@ -109,3 +109,5 @@ NTFY_URL = os.environ.get("NTFY_URL", "https://ntfy.sh")
 NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")
 OPS_MONITOR_INTERVAL = 300          # seconds between backend health checks
 NEWS_STALE_ALERT_MIN = 180          # alert if newest article older than this (min)
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+SUMMARY_STALL_ALERT_MIN = 120       # alert if articles flow but none summarised in this window

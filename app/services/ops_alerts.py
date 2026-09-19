@@ -10,7 +10,9 @@ import subprocess
 import time
 import urllib.request
 
-from app.config import NTFY_URL, NTFY_TOPIC, NEWS_STALE_ALERT_MIN
+from app.config import (
+    NTFY_URL, NTFY_TOPIC, NEWS_STALE_ALERT_MIN, OLLAMA_URL, SUMMARY_STALL_ALERT_MIN,
+)
 from app.services import summaries
 
 _alerting: dict[str, bool] = {}   # incident name -> currently alerting?
@@ -51,6 +53,16 @@ def _service_active(unit: str) -> bool:
         return True  # never false-alarm just because the check itself failed
 
 
+def _ollama_ok() -> bool:
+    # Answers within the timeout? Catches both "down" and "hung" (which the
+    # staleness + heartbeat checks miss, since articles keep flowing).
+    try:
+        urllib.request.urlopen(f"{OLLAMA_URL.rstrip('/')}/api/tags", timeout=5)
+        return True
+    except Exception:
+        return False
+
+
 def check_once() -> None:
     if not NTFY_TOPIC:
         return
@@ -72,4 +84,30 @@ def check_once() -> None:
             "News backend STALE",
             f"No new article for {int(age_min)} min (threshold {NEWS_STALE_ALERT_MIN}).",
             "New articles are flowing again.",
+        )
+
+    # 3. summariser (Ollama) down or hung — articles keep flowing but lose
+    #    ai_summary/region/tags, and breaking-news alerts stop. Neither the
+    #    staleness alert nor the dead-man's switch would catch this.
+    _transition(
+        "ollama down", not _ollama_ok(),
+        "Summariser (Ollama) DOWN",
+        "Ollama isn't responding — new articles won't get summaries, regions, tags or breaking-news alerts.",
+        "Ollama is responding again.",
+    )
+
+    # 4. summaries stalled: articles are arriving but none are being summarised
+    #    (e.g. Ollama up but the model errors/hangs). Stateless: compare newest
+    #    article vs newest summary time.
+    art = summaries.latest_article_ts()
+    summ = summaries.latest_summary_ts()
+    now = time.time()
+    window = SUMMARY_STALL_ALERT_MIN * 60
+    if art is not None and (now - art) < window:
+        stalled = (summ is None) or (now - summ) > window
+        _transition(
+            "summaries stalled", stalled,
+            "Summaries STALLED",
+            f"Articles are arriving but none summarised in {SUMMARY_STALL_ALERT_MIN} min.",
+            "Summaries are flowing again.",
         )

@@ -50,6 +50,22 @@ def latest_article_ts() -> float | None:
         return None
 
 
+def latest_summary_ts() -> float | None:
+    """Newest ai_summary write time (epoch) from the local mirror. Compared with
+    latest_article_ts() to detect the summariser stalling while articles flow."""
+    if not _mirror_available():
+        return None
+    try:
+        conn = sqlite3.connect(f"file:{SUMMARY_MIRROR_PATH}?mode=ro", uri=True, timeout=5)
+        try:
+            row = conn.execute("SELECT MAX(updated_at) FROM summaries").fetchone()
+            return row[0] if row and row[0] else None
+        finally:
+            conn.close()
+    except Exception:
+        return None
+
+
 def _enrich_from_mirror(articles: list[dict]) -> int:
     # Open read-only so we never interfere with news-firebase's writes.
     conn = sqlite3.connect(f"file:{SUMMARY_MIRROR_PATH}?mode=ro", uri=True, timeout=5)
