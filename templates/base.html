@@ -102,6 +102,21 @@
             });
         })();
 
+        // Daily reload: a tab left open for weeks accumulates memory (the Pi's
+        // dashboard window reached 5.8 GB after 45 days). Reload every 24h, but
+        // only once the server answers — a reload during a service restart
+        // would strand the screen on Chrome's error page, which never retries.
+        (function() {
+            const RELOAD_AFTER = 24 * 60 * 60 * 1000;
+            const RETRY = 5 * 60 * 1000;
+            function reloadWhenUp() {
+                fetch(location.href, { cache: 'no-store' })
+                    .then(r => r.ok ? location.reload() : setTimeout(reloadWhenUp, RETRY))
+                    .catch(() => setTimeout(reloadWhenUp, RETRY));
+            }
+            setTimeout(reloadWhenUp, RELOAD_AFTER);
+        })();
+
         // Theme toggle
         (function() {
             const btn = document.getElementById('theme-toggle');
