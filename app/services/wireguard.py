@@ -1,10 +1,11 @@
 """WireGuard client status via wg-easy API."""
 
+import os
 import httpx
 from datetime import datetime, timezone
 
 WGEASY_URL = "http://localhost:51821"
-WGEASY_PASSWORD = "REDACTED"
+WGEASY_PASSWORD = os.environ.get("WGEASY_PASSWORD", "")  # from .env (gitignored)
 
 _cache: list[dict] = []
 _cookies: dict = {}

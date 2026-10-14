@@ -1,9 +1,10 @@
 """Pi-hole stats via v6 API."""
 
+import os
 import httpx
 
 PIHOLE_URL = "http://10.2.0.3"
-PIHOLE_PASSWORD = "REDACTED"
+PIHOLE_PASSWORD = os.environ.get("PIHOLE_PASSWORD", "")  # from .env (gitignored)
 
 _cache: dict = {}
 _sid: str = ""
