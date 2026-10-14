@@ -4,8 +4,22 @@ import time
 import psutil
 
 
+# Non-blocking CPU sampling. interval=0.5 used to *sleep* inside the async
+# request handlers, freezing the whole server for half a second on every
+# System card (5s) and status strip (10s) refresh. interval=None returns usage
+# since the previous call — the dashboard polls every few seconds, so that
+# window is short and meaningful. Cached for 1s so near-simultaneous requests
+# don't get a near-zero-length (noisy) sample.
+psutil.cpu_percent(interval=None, percpu=True)  # prime the baseline
+_cpu_cache = {"t": 0.0, "v": [0.0] * (psutil.cpu_count() or 1)}
+
+
 def get_cpu_percent_per_core() -> list[float]:
-    return psutil.cpu_percent(interval=0.5, percpu=True)
+    now = time.monotonic()
+    if now - _cpu_cache["t"] >= 1.0:
+        _cpu_cache["v"] = psutil.cpu_percent(interval=None, percpu=True)
+        _cpu_cache["t"] = now
+    return _cpu_cache["v"]
 
 
 def get_cpu_temp() -> float | None:
