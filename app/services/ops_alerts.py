@@ -6,14 +6,22 @@ exactly one alert when an incident starts and one recovery message when it
 clears (state is kept in-process).
 """
 
+import random
+import socket
+import struct
 import subprocess
 import time
+import urllib.error
+import urllib.parse
 import urllib.request
 
 from app.config import (
     NTFY_URL, NTFY_TOPIC, NEWS_STALE_ALERT_MIN, OLLAMA_URL, SUMMARY_STALL_ALERT_MIN,
 )
 from app.services import summaries
+from app.services.pihole import PIHOLE_URL
+
+PIHOLE_HOST = urllib.parse.urlparse(PIHOLE_URL).hostname
 
 _alerting: dict[str, bool] = {}   # incident name -> currently alerting?
 
@@ -33,12 +41,13 @@ def _push(title: str, message: str, priority: str = "default", tags: str = "") -
         print(f"[ops] ntfy push failed: {e}")
 
 
-def _transition(name: str, bad: bool, alert_title: str, alert_msg: str, recover_msg: str) -> None:
+def _transition(name: str, bad: bool, alert_title: str, alert_msg: str, recover_msg: str,
+                priority: str = "urgent") -> None:
     """One alert on entering the bad state, one recovery on leaving it."""
     was = _alerting.get(name, False)
     if bad and not was:
         _alerting[name] = True
-        _push(alert_title, alert_msg, priority="urgent", tags="rotating_light")
+        _push(alert_title, alert_msg, priority=priority, tags="rotating_light")
     elif not bad and was:
         _alerting[name] = False
         _push(f"Recovered: {name}", recover_msg, priority="default", tags="white_check_mark")
@@ -51,6 +60,39 @@ def _service_active(unit: str) -> bool:
         return r.stdout.strip() == "active"
     except Exception:
         return True  # never false-alarm just because the check itself failed
+
+
+def _dns_ok(server: str, name: str = "pi.hole", attempts: int = 2) -> bool:
+    """Raw UDP DNS A-query (no dig/dnspython needed). 'pi.hole' is answered by
+    Pi-hole itself, so this tests Pi-hole — not the upstream/internet. Two
+    attempts so a single dropped UDP packet doesn't false-alarm."""
+    qname = b"".join(bytes([len(p)]) + p.encode() for p in name.split(".")) + b"\x00"
+    for _ in range(attempts):
+        qid = random.randint(0, 0xFFFF)
+        packet = struct.pack(">HHHHHH", qid, 0x0100, 1, 0, 0, 0) + qname + struct.pack(">HH", 1, 1)
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.settimeout(3)
+                s.sendto(packet, (server, 53))
+                data, _ = s.recvfrom(512)
+            rid, flags, _qd, ancount = struct.unpack(">HHHH", data[:8])
+            if rid == qid and (flags & 0x000F) == 0 and ancount > 0:   # NOERROR + answer
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def _http_ok(url: str) -> bool:
+    """True if a web server answers (any status < 500); False only when it's
+    unreachable — e.g. FTL silently lost its optional web ports on 2026-10-03."""
+    try:
+        with urllib.request.urlopen(url, timeout=5) as r:
+            return r.status < 500
+    except urllib.error.HTTPError as e:
+        return e.code < 500
+    except Exception:
+        return False
 
 
 def _ollama_ok() -> bool:
@@ -111,3 +153,21 @@ def check_once() -> None:
             f"Articles are arriving but none summarised in {SUMMARY_STALL_ALERT_MIN} min.",
             "Summaries are flowing again.",
         )
+
+    # 5. Pi-hole DNS — every LAN device and VPN client resolves through it.
+    _transition(
+        "pihole dns", not _dns_ok(PIHOLE_HOST),
+        "Pi-hole DNS DOWN",
+        f"Pi-hole isn't answering DNS on {PIHOLE_HOST} — LAN and VPN devices can't resolve names.",
+        "Pi-hole is answering DNS again.",
+    )
+
+    # 6. Pi-hole admin UI — FTL's web ports are 'optional', so it can lose its
+    #    web server while DNS keeps working (2026-10-03, unnoticed for 11 days).
+    _transition(
+        "pihole admin", not _http_ok(f"{PIHOLE_URL}/admin/"),
+        "Pi-hole admin UI DOWN",
+        "Pi-hole's web admin isn't responding (DNS/ad-blocking may still work). Fix: docker restart pihole",
+        "Pi-hole admin UI is responding again.",
+        priority="high",
+    )
