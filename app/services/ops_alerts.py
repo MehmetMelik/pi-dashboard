@@ -16,14 +16,17 @@ import urllib.parse
 import urllib.request
 
 from app.config import (
-    NTFY_URL, NTFY_TOPIC, NEWS_STALE_ALERT_MIN, OLLAMA_URL, SUMMARY_STALL_ALERT_MIN,
+    DUCKDNS_HOSTNAME, DUCKDNS_MISMATCH_ALERT_MIN, NTFY_URL, NTFY_TOPIC, NEWS_STALE_ALERT_MIN,
+    OLLAMA_URL, SUMMARY_STALL_ALERT_MIN,
 )
 from app.services import summaries
 from app.services.pihole import PIHOLE_URL
 
 PIHOLE_HOST = urllib.parse.urlparse(PIHOLE_URL).hostname
+DUCKDNS_NAMESERVER = "ns1.duckdns.org"   # ask DuckDNS directly, so no resolver cache hides a stale record
 
 _alerting: dict[str, bool] = {}   # incident name -> currently alerting?
+_duckdns_mismatch_since: float | None = None
 
 
 def _push(title: str, message: str, priority: str = "default", tags: str = "") -> None:
@@ -62,9 +65,9 @@ def _service_active(unit: str) -> bool:
         return True  # never false-alarm just because the check itself failed
 
 
-def _dns_ok(server: str, name: str = "pi.hole", attempts: int = 2) -> bool:
-    """Raw UDP DNS A-query (no dig/dnspython needed). 'pi.hole' is answered by
-    Pi-hole itself, so this tests Pi-hole — not the upstream/internet. Two
+def _dns_a(server: str, name: str, attempts: int = 2) -> list[str] | None:
+    """Raw UDP DNS A-query (no dig/dnspython needed). Returns the A records,
+    [] for an answer without any, or None if the server never answered. Two
     attempts so a single dropped UDP packet doesn't false-alarm."""
     qname = b"".join(bytes([len(p)]) + p.encode() for p in name.split(".")) + b"\x00"
     for _ in range(attempts):
@@ -75,12 +78,82 @@ def _dns_ok(server: str, name: str = "pi.hole", attempts: int = 2) -> bool:
                 s.settimeout(3)
                 s.sendto(packet, (server, 53))
                 data, _ = s.recvfrom(512)
-            rid, flags, _qd, ancount = struct.unpack(">HHHH", data[:8])
-            if rid == qid and (flags & 0x000F) == 0 and ancount > 0:   # NOERROR + answer
-                return True
+            rid, flags, qdcount, ancount = struct.unpack(">HHHH", data[:8])
+            if rid != qid:
+                continue
+            if flags & 0x000F:            # any error rcode
+                return []
+            off = 12
+            for _ in range(qdcount):
+                off = _skip_name(data, off) + 4
+            ips = []
+            for _ in range(ancount):
+                off = _skip_name(data, off)
+                rtype, _cls, _ttl, rdlen = struct.unpack(">HHIH", data[off:off + 10])
+                off += 10
+                if rtype == 1 and rdlen == 4:
+                    ips.append(socket.inet_ntoa(data[off:off + 4]))
+                off += rdlen
+            return ips
         except Exception:
             pass
-    return False
+    return None
+
+
+def _skip_name(data: bytes, off: int) -> int:
+    """Offset just past a (possibly compressed) DNS name."""
+    while data[off]:
+        if data[off] & 0xC0 == 0xC0:      # compression pointer ends the name
+            return off + 2
+        off += data[off] + 1
+    return off + 1
+
+
+def _dns_ok(server: str, name: str = "pi.hole") -> bool:
+    """'pi.hole' is answered by Pi-hole itself, so this tests Pi-hole — not the
+    upstream/internet."""
+    return bool(_dns_a(server, name))
+
+
+def _public_ip() -> str | None:
+    for url in ("https://api.ipify.org", "https://ifconfig.me/ip"):
+        try:
+            with urllib.request.urlopen(url, timeout=10) as r:
+                ip = r.read().decode().strip()
+            socket.inet_aton(ip)
+            return ip
+        except Exception:
+            pass
+    return None
+
+
+def _check_duckdns() -> None:
+    """Alert when the DuckDNS name hasn't matched the home's public IP for
+    DUCKDNS_MISMATCH_ALERT_MIN — the VPN is unreachable from outside meanwhile.
+    On 2026-10-18 the ISP changed the IP while DuckDNS was returning 502s, and
+    nothing noticed. Short gaps (the 5-minute updater catching up) don't alert."""
+    global _duckdns_mismatch_since
+    public = _public_ip()
+    if public is None:
+        return  # our own internet is down; nothing useful to compare
+    try:
+        published = _dns_a(socket.gethostbyname(DUCKDNS_NAMESERVER), DUCKDNS_HOSTNAME)
+    except OSError:
+        published = None
+    if published is not None and public in published:
+        _duckdns_mismatch_since = None
+    elif _duckdns_mismatch_since is None:
+        _duckdns_mismatch_since = time.time()
+    stale_min = 0 if _duckdns_mismatch_since is None else (time.time() - _duckdns_mismatch_since) / 60
+    shown = ", ".join(published) if published else "nothing"
+    _transition(
+        "duckdns", stale_min >= DUCKDNS_MISMATCH_ALERT_MIN,
+        "DuckDNS OUT OF DATE",
+        f"{DUCKDNS_HOSTNAME} points to {shown}, but the home IP is {public} (for {int(stale_min)} min). "
+        "The VPN can't be reached from outside until it updates. Check ~/dev/duckdns/duck.log on the Pi.",
+        f"{DUCKDNS_HOSTNAME} matches the home IP again ({public}).",
+        priority="high",
+    )
 
 
 def _http_ok(url: str) -> bool:
@@ -171,3 +244,7 @@ def check_once() -> None:
         "Pi-hole admin UI is responding again.",
         priority="high",
     )
+
+    # 7. DuckDNS still points at the home IP — the VPN's only way in from outside.
+    if DUCKDNS_HOSTNAME:
+        _check_duckdns()

@@ -111,3 +111,7 @@ OPS_MONITOR_INTERVAL = 300          # seconds between backend health checks
 NEWS_STALE_ALERT_MIN = 180          # alert if newest article older than this (min)
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 SUMMARY_STALL_ALERT_MIN = 120       # alert if articles flow but none summarised in this window
+# DuckDNS hostname the VPN clients connect to (set in .env, kept out of git);
+# empty disables the check. Alert when it hasn't matched the home IP for this long.
+DUCKDNS_HOSTNAME = os.environ.get("DUCKDNS_HOSTNAME", "")
+DUCKDNS_MISMATCH_ALERT_MIN = 15
