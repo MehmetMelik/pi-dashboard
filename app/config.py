@@ -115,3 +115,10 @@ SUMMARY_STALL_ALERT_MIN = 120       # alert if articles flow but none summarised
 # empty disables the check. Alert when it hasn't matched the home IP for this long.
 DUCKDNS_HOSTNAME = os.environ.get("DUCKDNS_HOSTNAME", "")
 DUCKDNS_MISMATCH_ALERT_MIN = 15
+# news-firebase's per-feed health DB (read-only). Alert when a feed has failed
+# every fetch for this long — a moved or shut-down feed otherwise only shows up
+# as a log warning.
+FEED_HEALTH_DB_PATH = os.environ.get(
+    "FEED_HEALTH_DB_PATH", "/home/melik/dev/news-firebase/feed_health.db"
+)
+FEED_FAIL_ALERT_HOURS = 24

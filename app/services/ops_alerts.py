@@ -6,18 +6,22 @@ exactly one alert when an incident starts and one recovery message when it
 clears (state is kept in-process).
 """
 
+import os
 import random
 import socket
+import sqlite3
 import struct
 import subprocess
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from contextlib import closing
+from datetime import datetime, timedelta, timezone
 
 from app.config import (
-    DUCKDNS_HOSTNAME, DUCKDNS_MISMATCH_ALERT_MIN, NTFY_URL, NTFY_TOPIC, NEWS_STALE_ALERT_MIN,
-    OLLAMA_URL, SUMMARY_STALL_ALERT_MIN,
+    DUCKDNS_HOSTNAME, DUCKDNS_MISMATCH_ALERT_MIN, FEED_FAIL_ALERT_HOURS, FEED_HEALTH_DB_PATH,
+    NTFY_URL, NTFY_TOPIC, NEWS_STALE_ALERT_MIN, OLLAMA_URL, SUMMARY_STALL_ALERT_MIN,
 )
 from app.services import summaries
 from app.services.pihole import PIHOLE_URL
@@ -156,6 +160,41 @@ def _check_duckdns() -> None:
     )
 
 
+def _failing_feeds() -> dict[str, tuple[str, str]] | None:
+    """Feeds that have failed every fetch for FEED_FAIL_ALERT_HOURS, as
+    {source: (failing_since, last_error)}; None if the DB can't be read."""
+    if not os.path.exists(FEED_HEALTH_DB_PATH):
+        return None
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=FEED_FAIL_ALERT_HOURS)).isoformat()
+    try:
+        with closing(sqlite3.connect(f"file:{FEED_HEALTH_DB_PATH}?mode=ro", uri=True, timeout=5)) as db:
+            rows = db.execute("SELECT source, failing_since, last_error FROM feed_status "
+                              "WHERE failing_since IS NOT NULL AND failing_since < ?", (cutoff,)).fetchall()
+    except sqlite3.Error:
+        return None   # e.g. news-firebase hasn't added the failing_since column yet
+    return {source: (since, error) for source, since, error in rows}
+
+
+def _check_feeds() -> None:
+    """One alert per news feed that keeps failing (moved URL, shut-down feed).
+    In Oct 2026 Reuters, Nikkei Asia, Medical News Today and CDC were dead for
+    weeks with nothing but a log line to show for it."""
+    failing = _failing_feeds()
+    if failing is None:
+        return
+    alerting = {name[len("feed: "):] for name, on in _alerting.items() if on and name.startswith("feed: ")}
+    for source in failing.keys() | alerting:
+        since, error = failing.get(source, ("", ""))
+        _transition(
+            f"feed: {source}", source in failing,
+            f"News feed FAILING: {source}",
+            f"{source} has failed every fetch since {since[:16].replace('T', ' ')} UTC ({error}). "
+            "Fix or replace its URL in news-firebase/config.py.",
+            f"{source} is fetching again (or was removed from the feed list).",
+            priority="default",
+        )
+
+
 def _http_ok(url: str) -> bool:
     """True if a web server answers (any status < 500); False only when it's
     unreachable — e.g. FTL silently lost its optional web ports on 2026-10-03."""
@@ -248,3 +287,6 @@ def check_once() -> None:
     # 7. DuckDNS still points at the home IP — the VPN's only way in from outside.
     if DUCKDNS_HOSTNAME:
         _check_duckdns()
+
+    # 8. A news feed has failed every fetch for FEED_FAIL_ALERT_HOURS.
+    _check_feeds()
